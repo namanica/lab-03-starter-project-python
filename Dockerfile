@@ -1,11 +1,11 @@
-# Оптимізований Dockerfile з ефективним використанням шарів
-FROM python:3.11-slim
+FROM python:3.11-alpine
 
-# Встановлення системних залежностей, які рідко змінюються
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Встановлення системних залежностей (Alpine використовує apk замість apt)
+RUN apk add --no-cache --virtual .build-deps \
     gcc \
+    musl-dev \
     python3-dev \
-    && rm -rf /var/lib/apt/lists/*
+    && pip install --no-cache-dir --upgrade pip
 
 # Встановлення робочої директорії
 WORKDIR /app
@@ -13,13 +13,14 @@ WORKDIR /app
 # Копіюємо файли залежностей окремо
 COPY requirements/requirements.txt ./requirements/requirements.txt
 
-# Встановлення Python залежностей (рідко змінюються)
-RUN pip install --no-cache-dir -r requirements/requirements.txt
+# Встановлення Python залежностей
+RUN pip install --no-cache-dir -r requirements/requirements.txt \
+    && apk del .build-deps  # Видаляємо тимчасові залежності
 
 # Копіюємо лише необхідні файли проекту
 COPY spaceship/ ./spaceship/
 
-# Встановлення решти файлів (які змінюються часто)
+# Встановлення решти файлів
 COPY build/ ./build/
 
 # Відкриття порту
